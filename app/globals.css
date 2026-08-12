@@ -111,6 +111,7 @@ table.hist td.r{text-align:right}
 .phase li{margin-bottom:6px;font-size:15px}
 .target{font-family:var(--mono);font-size:11.5px;color:var(--ink);background:var(--dropout-soft);display:inline-block;padding:4px 9px;margin-top:9px}
 
-input[type=email]{width:100%;font-family:var(--mono);font-size:14px;padding:12px;border:1px solid var(--rule);background:#fff}
+input[type=email],input[type=password]{width:100%;font-family:var(--mono);font-size:14px;padding:12px;border:1px solid var(--rule);background:#fff}
+input:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 @media (max-width:520px){.grid2{grid-template-columns:1fr}.stem{font-size:16.5px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
