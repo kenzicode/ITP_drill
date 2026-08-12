@@ -123,3 +123,13 @@ input:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 .tip{margin-top:13px;background:var(--dropout-soft);border-left:3px solid var(--dropout);padding:11px 13px}
 .tip-lab{color:var(--ink)}
 .tip p{margin:5px 0 0;font-size:14.5px;line-height:1.6}
+
+/* blok teori yang bisa dibuka */
+.theory{margin-top:13px;border:1px solid var(--rule);background:#FCFCF9}
+.theory summary{cursor:pointer;padding:11px 13px;font-family:var(--disp);font-weight:600;font-size:13.5px;color:var(--ink);list-style:none}
+.theory summary::-webkit-details-marker{display:none}
+.theory summary::before{content:"▸ ";color:var(--dropout)}
+.theory[open] summary::before{content:"▾ "}
+.theory[open] summary{border-bottom:1px solid var(--rule)}
+.theory > div{padding:13px;font-size:14.5px;line-height:1.68}
+.theory em{font-family:var(--mono);font-size:13px;font-style:normal;background:var(--dropout-soft);padding:1px 4px}

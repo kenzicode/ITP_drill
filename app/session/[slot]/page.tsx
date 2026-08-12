@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Drill from "@/components/Drill";
 import { createClient } from "@/lib/supabase/server";
-import { getBank, getQuestionState } from "@/lib/data";
+import { getBank, getQuestionState, getSkillNotes } from "@/lib/data";
 import { buildSession } from "@/lib/session";
 import type { Slot } from "@/lib/types";
 
@@ -17,7 +17,11 @@ export default async function SessionPage({ params }: { params: { slot: string }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) notFound();
 
-  const [{ questions, passages }, state] = await Promise.all([getBank(), getQuestionState()]);
+  const [{ questions, passages }, state, notes] = await Promise.all([
+    getBank(),
+    getQuestionState(),
+    getSkillNotes(),
+  ]);
   const items = buildSession(slot, questions, passages, state);
 
   if (items.length === 0) {
@@ -34,5 +38,5 @@ export default async function SessionPage({ params }: { params: { slot: string }
   }
 
   // Sesi dibuat saat jawaban pertama, bukan di sini — lihat app/api/session/start.
-  return <Drill items={items} slot={slot} />;
+  return <Drill items={items} slot={slot} notes={notes} />;
 }
