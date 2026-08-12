@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Passage, Question, SectionStat, SkillStat } from "./types";
+import type { Passage, Question, SectionStat, SkillNote, SkillStat } from "./types";
 import type { QState } from "./session";
 
 export async function getBank() {
@@ -14,6 +14,14 @@ export async function getBank() {
 }
 
 /** Rekap per soal milik user: berapa kali dikerjakan, berapa kali salah, kapan terakhir. */
+export async function getSkillNotes(): Promise<Record<string, SkillNote>> {
+  const supabase = createClient();
+  const { data } = await supabase.from("skill_notes").select("*");
+  const out: Record<string, SkillNote> = {};
+  (data ?? []).forEach((n) => (out[n.skill] = n as SkillNote));
+  return out;
+}
+
 export async function getQuestionState(): Promise<QState> {
   const supabase = createClient();
   const { data } = await supabase
@@ -41,7 +49,7 @@ export async function getSectionStats(): Promise<SectionStat[]> {
 
 export async function getSkillStats(): Promise<SkillStat[]> {
   const supabase = createClient();
-  const { data } = await supabase.from("v_skill_stats").select("*").gte("answered", 3);
+  const { data } = await supabase.from("v_skill_stats").select("*").gte("answered", 5);
   return (data ?? []) as SkillStat[];
 }
 
