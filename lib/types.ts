@@ -35,6 +35,8 @@ export type DrillItem = Question & {
   passage?: Passage;
 };
 
+export type SkillNote = { skill: string; title: string; body: string };
+
 export type SectionStat = {
   section: Section;
   answered: number;
