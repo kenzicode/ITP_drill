@@ -22,6 +22,10 @@ export type Question = {
   passage_id: string | null;
   no_shuffle: boolean;
   script: [string, string][] | null;
+  /** Satu penjelasan per pilihan, mengikuti urutan opts asli. */
+  opt_exp: string[] | null;
+  /** Taktik ujian atau jebakan yang sering muncul untuk pola ini. */
+  tip: string | null;
 };
 
 /** Soal yang sudah diacak dan siap ditampilkan. */

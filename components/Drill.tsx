@@ -35,6 +35,8 @@ export default function Drill({ items: initialItems, slot }: { items: DrillItem[
 
   const q = items[i];
   const answered = picked[i] !== null;
+  // Indeks pilihan dikembalikan ke urutan opts asli, karena opt_exp mengikuti urutan itu.
+  const pickedOriginal = picked[i] === null ? null : q.opts.indexOf(q.shown[picked[i]!]);
   const correct = scored.filter(Boolean).length;
 
   useEffect(() => {
@@ -283,12 +285,35 @@ export default function Drill({ items: initialItems, slot }: { items: DrillItem[
 
         {answered && (
           <>
-            <div className={`verdict ${picked[i] === q.key ? "" : "bad"}`}>
+            <div className={`verdict ${scored[i] ? "" : "bad"}`}>
               <div className="tag">
-                <span>{picked[i] === q.key ? "Benar" : "Salah"}</span>
+                <span>{scored[i] ? "Benar" : "Salah"}</span>
                 <span className="skill">{q.skill}</span>
               </div>
               <p dangerouslySetInnerHTML={{ __html: q.exp }} />
+
+              {/* Penjelasan untuk pilihan yang benar-benar Anda ambil. */}
+              {q.opt_exp && pickedOriginal !== null && q.opt_exp[pickedOriginal] && (
+                <div className="why">
+                  <span className="why-lab">{scored[i] ? "Kenapa ini benar" : "Pilihan Anda"}</span>
+                  <p dangerouslySetInnerHTML={{ __html: q.opt_exp[pickedOriginal] }} />
+                </div>
+              )}
+
+              {/* Kalau salah, tunjukkan juga kenapa kuncinya benar. */}
+              {q.opt_exp && !scored[i] && q.opt_exp[q.ans] && (
+                <div className="why">
+                  <span className="why-lab">Kunci: {q.opts[q.ans]}</span>
+                  <p dangerouslySetInnerHTML={{ __html: q.opt_exp[q.ans] }} />
+                </div>
+              )}
+
+              {q.tip && (
+                <div className="tip">
+                  <span className="tip-lab">Catatan ujian</span>
+                  <p dangerouslySetInnerHTML={{ __html: q.tip }} />
+                </div>
+              )}
             </div>
             {failed && (
               <p className="note" style={{ color: "var(--scarlet)" }}>
