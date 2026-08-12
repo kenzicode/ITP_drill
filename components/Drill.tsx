@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { DrillItem, Slot } from "@/lib/types";
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -19,18 +18,15 @@ const KIND_LABEL: Record<string, string> = {
   lg: "Listening Part B/C",
 };
 
-export default function Drill({
-  items,
-  slot,
-  sessionId,
-}: {
-  items: DrillItem[];
-  slot: Slot;
-  sessionId: string;
-}) {
-  const router = useRouter();
+export default function Drill({ items: initialItems, slot }: { items: DrillItem[]; slot: Slot }) {
+  // Daftar soal dibekukan saat komponen dipasang. Kalau server component dimuat ulang,
+  // opsi akan diacak ulang dan kunci jawabannya bergeser — state di bawah ini tidak boleh ikut bergeser.
+  const [items] = useState<DrillItem[]>(initialItems);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<(number | null)[]>(() => items.map(() => null));
+  // Benar/salah disimpan saat menjawab, bukan dihitung ulang saat render.
+  const [scored, setScored] = useState<(boolean | null)[]>(() => items.map(() => null));
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
   const [done, setDone] = useState(false);
@@ -39,7 +35,7 @@ export default function Drill({
 
   const q = items[i];
   const answered = picked[i] !== null;
-  const correct = picked.filter((p, n) => p !== null && p === items[n].key).length;
+  const correct = scored.filter(Boolean).length;
 
   useEffect(() => {
     shownAt.current = Date.now();
@@ -50,14 +46,28 @@ export default function Drill({
     const next = [...picked];
     next[i] = choice;
     setPicked(next);
+    const marks = [...scored];
+    marks[i] = choice === q.key;
+    setScored(marks);
     setSaving(true);
     setFailed(false);
     try {
+      let sid = sessionId;
+      if (!sid) {
+        const started = await fetch("/api/session/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slot, total: items.length }),
+        });
+        const j = await started.json();
+        sid = j.sessionId ?? null;
+        setSessionId(sid);
+      }
       const res = await fetch("/api/attempt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionId,
+          sessionId: sid,
           questionId: q.id,
           // indeks dikembalikan ke urutan asli sebelum dikirim
           picked: q.opts.indexOf(q.shown[choice]),
@@ -77,13 +87,16 @@ export default function Drill({
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    await fetch("/api/finish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
-    }).catch(() => {});
+    if (sessionId) {
+      await fetch("/api/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      }).catch(() => {});
+    }
     setDone(true);
-    router.refresh();
+    // Tidak memanggil router.refresh() di sini: itu akan menyusun ulang daftar soal
+    // di server dan membuat hasil sesi ini dihitung terhadap kunci yang sudah bergeser.
   }
 
   useEffect(() => {
@@ -108,7 +121,7 @@ export default function Drill({
         {items.map((it, n) => {
           const p = picked[n];
           const cls = ["bub"];
-          if (p !== null) cls.push(p === it.key ? "ok" : "no");
+          if (scored[n] !== null) cls.push(scored[n] ? "ok" : "no");
           if (n === i && !done) cls.push("cur");
           return (
             <div key={it.id} className={cls.join(" ")}>
@@ -126,8 +139,21 @@ export default function Drill({
     items.forEach((it, n) => {
       const b = (bySkill[it.skill] ??= { c: 0, t: 0 });
       b.t += 1;
-      if (picked[n] === it.key) b.c += 1;
+      if (scored[n]) b.c += 1;
     });
+    // Pemisahan yang tidak terlihat dari daftar skill: soal pendek versus teks panjang.
+    const split = [
+      { label: "Part A — dialog pendek", kinds: ["la"] },
+      { label: "Part B/C — percakapan & ceramah", kinds: ["lg"] },
+      { label: "Bacaan panjang", kinds: ["reading"] },
+      { label: "Structure", kinds: ["plain"] },
+      { label: "Written Expression", kinds: ["we"] },
+    ]
+      .map((g) => {
+        const idx = items.map((it, n) => (g.kinds.includes(it.kind) ? n : -1)).filter((n) => n >= 0);
+        return { label: g.label, t: idx.length, c: idx.filter((n) => scored[n]).length };
+      })
+      .filter((g) => g.t >= 3);
     const weak = Object.entries(bySkill)
       .filter(([, v]) => v.c < v.t)
       .sort((a, b) => a[1].c / a[1].t - b[1].c / b[1].t)
@@ -154,6 +180,23 @@ export default function Drill({
               <div className="l">Waktu pengerjaan</div>
             </div>
           </div>
+          {split.length > 1 && (
+            <>
+              <h2 className="sec">Per jenis soal</h2>
+              {split.map((g) => {
+                const p = Math.round((g.c / g.t) * 100);
+                return (
+                  <div className="bar" key={g.label}>
+                    <div className="lab">{g.label}</div>
+                    <div className="track">
+                      <div className={`fill ${p < 55 ? "weak" : p >= 75 ? "strong" : ""}`} style={{ width: `${p}%` }} />
+                    </div>
+                    <div className="pct">{g.c}/{g.t}</div>
+                  </div>
+                );
+              })}
+            </>
+          )}
           {weak.length > 0 && (
             <>
               <h2 className="sec">Yang perlu ditambal</h2>

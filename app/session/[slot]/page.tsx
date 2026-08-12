@@ -33,20 +33,6 @@ export default async function SessionPage({ params }: { params: { slot: string }
     );
   }
 
-  const { data: session, error } = await supabase
-    .from("sessions")
-    .insert({ user_id: user.id, slot, total: items.length })
-    .select("id")
-    .single();
-
-  if (error || !session) {
-    return (
-      <div className="card" style={{ marginTop: 30 }}>
-        <p style={{ margin: 0 }}>Sesi gagal dibuat: {error?.message}. Muat ulang halaman.</p>
-        <a className="btn" href="/">Kembali</a>
-      </div>
-    );
-  }
-
-  return <Drill items={items} slot={slot} sessionId={session.id} />;
+  // Sesi dibuat saat jawaban pertama, bukan di sini — lihat app/api/session/start.
+  return <Drill items={items} slot={slot} />;
 }
