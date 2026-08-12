@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { DrillItem, Slot } from "@/lib/types";
+import type { DrillItem, SkillNote, Slot } from "@/lib/types";
 
 const LETTERS = ["A", "B", "C", "D"];
 const LABEL: Record<Slot, string> = {
@@ -18,7 +18,15 @@ const KIND_LABEL: Record<string, string> = {
   lg: "Listening Part B/C",
 };
 
-export default function Drill({ items: initialItems, slot }: { items: DrillItem[]; slot: Slot }) {
+export default function Drill({
+  items: initialItems,
+  slot,
+  notes,
+}: {
+  items: DrillItem[];
+  slot: Slot;
+  notes: Record<string, SkillNote>;
+}) {
   // Daftar soal dibekukan saat komponen dipasang. Kalau server component dimuat ulang,
   // opsi akan diacak ulang dan kunci jawabannya bergeser — state di bawah ini tidak boleh ikut bergeser.
   const [items] = useState<DrillItem[]>(initialItems);
@@ -36,6 +44,7 @@ export default function Drill({ items: initialItems, slot }: { items: DrillItem[
   const q = items[i];
   const answered = picked[i] !== null;
   // Indeks pilihan dikembalikan ke urutan opts asli, karena opt_exp mengikuti urutan itu.
+  const note = notes[q.skill] ?? null;
   const pickedOriginal = picked[i] === null ? null : q.opts.indexOf(q.shown[picked[i]!]);
   const correct = scored.filter(Boolean).length;
 
@@ -295,17 +304,32 @@ export default function Drill({ items: initialItems, slot }: { items: DrillItem[
               {/* Penjelasan untuk pilihan yang benar-benar Anda ambil. */}
               {q.opt_exp && pickedOriginal !== null && q.opt_exp[pickedOriginal] && (
                 <div className="why">
-                  <span className="why-lab">{scored[i] ? "Kenapa ini benar" : "Pilihan Anda"}</span>
+                  <span className="why-lab">
+                    {scored[i]
+                      ? "Jawaban Anda"
+                      : q.kind === "we"
+                        ? "Bagian yang Anda tunjuk"
+                        : "Pilihan Anda"}
+                  </span>
                   <p dangerouslySetInnerHTML={{ __html: q.opt_exp[pickedOriginal] }} />
                 </div>
               )}
 
-              {/* Kalau salah, tunjukkan juga kenapa kuncinya benar. */}
+              {/* Kalau salah, tunjukkan bagian yang sebenarnya dicari. */}
               {q.opt_exp && !scored[i] && q.opt_exp[q.ans] && (
                 <div className="why">
-                  <span className="why-lab">Kunci: {q.opts[q.ans]}</span>
+                  <span className="why-lab">
+                    {q.kind === "we" ? "Bagian yang salah" : "Kunci"}: {q.opts[q.ans]}
+                  </span>
                   <p dangerouslySetInnerHTML={{ __html: q.opt_exp[q.ans] }} />
                 </div>
+              )}
+
+              {note && (
+                <details className="theory">
+                  <summary>Teori singkat: {note.title}</summary>
+                  <div dangerouslySetInnerHTML={{ __html: note.body }} />
+                </details>
               )}
 
               {q.tip && (
